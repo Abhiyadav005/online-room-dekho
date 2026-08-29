@@ -14,7 +14,7 @@ export function Footer() {
         <div><h2 className="font-bold text-white">Explore</h2><ul className="mt-3 space-y-2 text-sm"><li><Link to="/search" className="hover:text-white">Search rooms</Link></li><li><Link to="/map" className="hover:text-white">Browse on map</Link></li><li><Link to="/register?role=owner" className="hover:text-white">List a property</Link></li></ul></div>
         <div><h2 className="font-bold text-white">Built for trust</h2><p className="mt-3 text-sm leading-6">We use mobile verification and listing review. We never ask for Aadhaar or government identity documents.</p><Link to="/how-it-works" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-emerald-200 hover:text-white">How verification works <ArrowUpRight size={15} /></Link></div>
       </div>
-      <div className="border-t border-white/10"><div className="container-page flex flex-col gap-2 py-4 text-xs sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} RoomDekho</span><span>Discovery and owner contact only — no online bookings or payments.</span></div></div>
+      <div className="border-t border-white/10"><div className="container-page flex flex-col gap-2 py-4 text-xs sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} Online Room Dekho</span><span>Discovery and owner contact only — no online bookings or payments.</span></div></div>
     </footer>
   );
 }
