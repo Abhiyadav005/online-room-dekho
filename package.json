@@ -1,0 +1,22 @@
+{
+  "name": "smart-room-finder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A secure room discovery and owner-contact platform.",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend",
+    "test": "npm run test --workspaces --if-present",
+    "seed": "npm run seed --workspace=backend"
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
+  }
+}
