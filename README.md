@@ -1,6 +1,6 @@
-# Smart Room Finder
+# Online Room Dekho
 
-Smart Room Finder is a full-stack rental-discovery platform for students,
+Online Room Dekho is a full-stack rental-discovery platform for students,
 employees, tourists, and people relocating to a new city. It helps people
 search for rooms, PGs, hostels, flats, and shared accommodation; compare
 verified listings; and contact owners directly.
