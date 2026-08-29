@@ -50,6 +50,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.path}`);
   next();
 });
+// Root route
+app.get('/', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: 'Smart Room Finder API is running'
+  });
+});
 
 // Health check
 app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
