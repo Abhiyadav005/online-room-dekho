@@ -67,7 +67,7 @@ app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
 app.post('/api/auth/register', authRateLimit, validate(registerSchema), asyncHandler(authController.register));
 app.post('/api/auth/login', authRateLimit, validate(loginSchema), asyncHandler(authController.login));
 app.post('/api/auth/send-otp', otpRateLimit, validate(sendOtpSchema), asyncHandler(authController.sendOtp));
-app.post('/api/auth/verify-otp', otpRateLimit, validate(verifyOtpSchema), asyncHandler(authController.verifyOtp));
+app.post('/api/auth/forgot-password', otpRateLimit, validate(verifyOtpSchema), asyncHandler(authController.forgotPassword));
 app.post('/api/auth/reset-password', authRateLimit, validate(resetPasswordSchema), asyncHandler(authController.resetPassword));
 
 // ============= PROTECTED ROUTES (All authenticated users) =============
