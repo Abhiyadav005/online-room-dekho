@@ -69,15 +69,24 @@ async function consumeOtp(phone: string, purpose: OtpPurpose, code: string): Pro
 }
 
 export async function register(req: Request, res: Response): Promise<Response> {
-  const { name, email, phone, password, role } = req.body as { name: string; email: string; phone: string; password: string; role: 'user' | 'owner' };
+  const { name, email, phone, password, role } = req.body as { name: string; email: string; phone: string; password: string; role: 'user' | 'owner' | 'admin' };
+  
+  // Prevent admin registration from public endpoint
+  if (role === 'admin') {
+    throw new AppError('Invalid role. Admin accounts cannot be created through public registration.', 403, 'FORBIDDEN');
+  }
+
+  // Only allow user or owner roles
+  const validRole: 'user' | 'owner' = role === 'owner' ? 'owner' : 'user';
+
   const [emailExists, phoneExists] = await Promise.all([User.exists({ email: email.toLowerCase() }), User.exists({ phone })]);
   if (emailExists || phoneExists) throw new AppError('An account already uses that email or phone', 409, 'DUPLICATE_ACCOUNT');
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await User.create({ name, email: email.toLowerCase(), phone, passwordHash, role });
-  if (role === 'owner') await OwnerProfile.create({ user: user._id });
+  const user = await User.create({ name, email: email.toLowerCase(), phone, passwordHash, role: validRole });
+  if (validRole === 'owner') await OwnerProfile.create({ user: user._id });
   setRefreshCookie(res, user._id.toString(), user.role);
-  await recordAudit(req, { actor: user._id, action: 'auth.register', entityType: 'user', entityId: user._id, metadata: { role } });
+  await recordAudit(req, { actor: user._id, action: 'auth.register', entityType: 'user', entityId: user._id, metadata: { role: validRole } });
   return res.status(201).json({ success: true, data: { user: publicUser(user), token: signAccessToken(user._id.toString(), user.role) } });
 }
 

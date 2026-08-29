@@ -4,7 +4,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
 
-export function DashboardPage() {
+export function UserDashboardPage() {
   const { user, logout } = useAuth();
   const navigation = [
     { name: 'Overview', href: '/dashboard', icon: User },

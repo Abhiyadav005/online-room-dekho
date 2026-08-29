@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { demoUsers } from '../data/demoRooms';
 import { authService } from '../services/auth';
 import type { User, UserRole } from '../types';
 
@@ -7,11 +6,11 @@ interface AuthContextValue {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  isDemo: boolean;
-  login: (email: string, password: string) => Promise<User>;
-  register: (values: { name: string; email: string; phone: string; password: string; role: UserRole }) => Promise<User>;
+  userRole: UserRole | null;
+  login: (email: string, password: string, role: UserRole) => Promise<User>;
+  registerUser: (values: { name: string; email: string; phone: string; password: string }) => Promise<User>;
+  registerOwner: (values: { name: string; email: string; phone: string; password: string }) => Promise<User>;
   logout: () => Promise<void>;
-  continueAsDemo: (role: UserRole) => void;
   updateUser: (user: User) => void;
 }
 
@@ -48,27 +47,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     token,
     isAuthenticated: Boolean(user && token),
-    isDemo: token === 'demo-session-token',
-    async login(email, password) {
-      const session = await authService.login({ email, password });
+    userRole: user?.role ?? null,
+    async login(email, password, role) {
+      const session = await authService.login({ email, password, role });
       saveSession(session.user, session.token);
       return session.user;
     },
-    async register(values) {
-      const session = await authService.register(values);
+    async registerUser(values) {
+      const session = await authService.registerUser(values);
+      saveSession(session.user, session.token);
+      return session.user;
+    },
+    async registerOwner(values) {
+      const session = await authService.registerOwner(values);
       saveSession(session.user, session.token);
       return session.user;
     },
     async logout() {
       try {
-        if (token && token !== 'demo-session-token') await authService.logout();
+        if (token) await authService.logout();
       } finally {
         clearSession();
       }
-    },
-    continueAsDemo(role) {
-      const match = demoUsers.find((candidate) => candidate.role === role) || demoUsers[0];
-      saveSession(match, 'demo-session-token');
     },
     updateUser(nextUser) {
       localStorage.setItem('roomdekho_user', JSON.stringify(nextUser));

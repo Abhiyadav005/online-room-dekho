@@ -7,12 +7,16 @@ export interface AuthResponse {
 }
 
 export const authService = {
-  async login(credentials: { email: string; password: string }) {
+  async login(credentials: { email: string; password: string; role: UserRole }) {
     const response = await api.post('/auth/login', credentials);
     return unwrap<AuthResponse>(response.data);
   },
-  async register(values: { name: string; email: string; phone: string; password: string; role: UserRole }) {
-    const response = await api.post('/auth/register', values);
+  async registerUser(values: { name: string; email: string; phone: string; password: string }) {
+    const response = await api.post('/auth/register', { ...values, role: 'user' });
+    return unwrap<AuthResponse>(response.data);
+  },
+  async registerOwner(values: { name: string; email: string; phone: string; password: string }) {
+    const response = await api.post('/auth/register', { ...values, role: 'owner' });
     return unwrap<AuthResponse>(response.data);
   },
   async logout() {
@@ -26,12 +30,12 @@ export const authService = {
     const response = await api.post('/auth/verify-otp', { phone, otp, purpose });
     return unwrap<{ user?: User }>(response.data);
   },
-  async requestReset(email: string) {
-    const response = await api.post('/auth/forgot-password', { email });
+  async requestReset(phone: string) {
+    const response = await api.post('/auth/forgot-password', { phone });
     return unwrap<{ message?: string }>(response.data);
   },
-  async resetPassword(token: string, password: string) {
-    const response = await api.post('/auth/reset-password', { token, password });
-    return unwrap<{ message?: string }>(response.data);
+  async resetPassword(phone: string, otp: string, password: string) {
+    const response = await api.post('/auth/reset-password', { phone, otp, password });
+    return unwrap<AuthResponse>(response.data);
   },
 };
