@@ -85,23 +85,7 @@ export function RegisterPage() {
           <p className="text-slate-600">Join Online Room Dekho today</p>
         </div>
 
-        {/* Role Selection */}
-        <div className="flex gap-3 mb-8">
-          {(['user', 'owner'] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRole(r)}
-              className={`flex-1 py-3 px-4 rounded-lg font-medium transition ${
-                role === r
-                  ? 'bg-brand-600 text-white shadow-sm'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {r === 'user' ? '👤 Room Seeker' : '🏠 Room Owner'}
-            </button>
-          ))}
-        </div>
-
+        
         {/* Form */}
         <form onSubmit={handleRegister} className="bg-white rounded-2xl shadow-soft p-8 space-y-5">
           {/* Error Message */}
