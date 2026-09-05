@@ -44,7 +44,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-slate-50" style={{minHeight: '90vh'}}>
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -52,26 +52,7 @@ export function LoginPage() {
           <p className="text-slate-600">Log in to access your account</p>
         </div>
 
-        {/* Role Tabs */}
-        <div className="flex gap-2 mb-8 bg-white rounded-xl p-1.5 shadow-sm">
-          {(['user', 'owner', 'admin'] as const).map((role) => (
-            <button
-              key={role}
-              onClick={() => {
-                setActiveTab(role);
-                setError('');
-                setSuccess('');
-              }}
-              className={`flex-1 py-2.5 px-3 rounded-lg font-medium text-sm transition capitalize ${
-                activeTab === role
-                  ? 'bg-brand-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {role === 'user' ? 'User' : role === 'owner' ? 'Owner' : 'Admin'}
-            </button>
-          ))}
-        </div>
+        
 
         {/* Form */}
         <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-soft p-8 space-y-5">
