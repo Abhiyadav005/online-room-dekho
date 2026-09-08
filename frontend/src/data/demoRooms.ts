@@ -658,15 +658,4 @@ export const demoUsers: User[] = [
     phoneVerified: true,
   },
 
-  {
-    _id: 'demo-admin',
-
-    name: 'Demo Admin',
-
-    email: 'admin@demo.local',
-
-    role: 'admin',
-
-    phoneVerified: true,
-  },
 ];

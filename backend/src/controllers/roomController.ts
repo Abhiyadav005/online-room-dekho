@@ -120,10 +120,14 @@ export async function createRoom(req: Request, res: Response): Promise<Response>
   if (!req.auth) throw new AppError('Authentication is required', 401, 'AUTH_REQUIRED');
   const user = await User.findById(req.auth.userId).select('phoneVerified isSuspended');
   if (!user || user.isSuspended) throw new AppError('This account is unavailable', 403, 'ACCOUNT_UNAVAILABLE');
-  if (!user.phoneVerified) throw new AppError('Verify your mobile number before creating a listing', 403, 'PHONE_VERIFICATION_REQUIRED');
   const ownerProfile = await OwnerProfile.findOne({ user: req.auth.userId });
   if (ownerProfile?.isSuspended) throw new AppError('Owner profile is suspended', 403, 'OWNER_SUSPENDED');
-  const room = await Room.create({ ...req.body, owner: req.auth.userId, ...(ownerProfile ? { ownerProfile: ownerProfile._id } : {}) });
+  const room = await Room.create({
+    ...req.body,
+    owner: req.auth.userId,
+    verificationStatus: 'approved',
+    ...(ownerProfile ? { ownerProfile: ownerProfile._id } : {})
+  });
   await recordAudit(req, { actor: req.auth.userId, action: 'room.create', entityType: 'room', entityId: room._id });
   return res.status(201).json({ success: true, data: room });
 }

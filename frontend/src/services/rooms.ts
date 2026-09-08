@@ -472,10 +472,15 @@ export const roomService = {
     filters: SearchFilters = {},
   ): Promise<RoomPage> {
     try {
+      const { query, facilities, ...rest } = filters;
       const response = await api.get(
-        '/search/rooms',
+        '/rooms/search',
         {
-          params: filters,
+          params: {
+            ...rest,
+            ...(query ? { q: query } : {}),
+            ...(facilities?.length ? { facilities: facilities.join(',') } : {}),
+          },
         },
       );
 
@@ -599,7 +604,7 @@ export const roomService = {
   ): Promise<Room> {
     const response =
       await api.post(
-        '/rooms',
+        '/owner/rooms',
         values,
       );
 
@@ -620,7 +625,7 @@ export const roomService = {
   ): Promise<Room> {
     const response =
       await api.put(
-        `/rooms/${id}`,
+        `/owner/rooms/${id}`,
         values,
       );
 
@@ -641,11 +646,8 @@ export const roomService = {
       Room['availabilityStatus'],
   ) {
     const response =
-      await api.patch(
-        `/rooms/${id}/availability`,
-        {
-          availabilityStatus,
-        },
+      await api.post(
+        `/owner/rooms/${id}/deactivate`,
       );
 
     return normaliseRoom(
@@ -662,14 +664,17 @@ export const roomService = {
   async remove(
     id: string,
   ) {
-    const response =
-      await api.delete(
-        `/rooms/${id}`,
-      );
+    const response = await api.post(`/owner/rooms/${id}/deactivate`);
 
     return unwrap<{
       message?: string;
+      deactivated?: boolean;
     }>(response.data);
+  },
+
+  async listOwner(page = 1, limit = 50): Promise<RoomPage> {
+    const response = await api.get('/owner/rooms', { params: { page, limit } });
+    return unwrap<RoomPage>(response.data);
   },
 
   /* ==============================================================

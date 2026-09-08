@@ -35,9 +35,7 @@ export function Header() {
   const dashboardPath =
     user?.role === 'owner'
       ? '/owner'
-      : user?.role === 'admin'
-        ? '/admin'
-        : '/dashboard';
+      : '/dashboard';
 
   const closeMobileMenu = () => {
     setOpen(false);
@@ -105,21 +103,12 @@ export function Header() {
           ====================================================== */}
           <div className="hidden items-center gap-2 lg:flex">
             {!isAuthenticated ? (
-              <>
-                <Link
-                  to="/login"
-                  className="btn-quiet !min-h-10 !rounded-xl"
-                >
-                  Log in
-                </Link>
-
-                <Link
-                  to="/register"
-                  className="btn-primary !min-h-10 !rounded-xl !px-5"
-                >
-                  Create account
-                </Link>
-              </>
+              <Link
+                to="/register"
+                className="btn-primary !min-h-10 !rounded-xl !px-5"
+              >
+                Sign up
+              </Link>
             ) : (
               <>
                 {/* Saved rooms — only for normal users */}
@@ -187,9 +176,7 @@ export function Header() {
                         <span className="mt-2 inline-flex rounded-full bg-brand-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-brand-700">
                           {user?.role === 'owner'
                             ? 'Room Owner'
-                            : user?.role === 'admin'
-                              ? 'Administrator'
-                              : 'Room Seeker'}
+                            : 'Room Seeker'}
                         </span>
                       </div>
 
@@ -369,23 +356,13 @@ export function Header() {
                   </button>
                 </>
               ) : (
-                <>
-                  <Link
-                    onClick={closeMobileMenu}
-                    to="/login"
-                    className="btn-secondary"
-                  >
-                    Log in
-                  </Link>
-
-                  <Link
-                    onClick={closeMobileMenu}
-                    to="/register"
-                    className="btn-primary"
-                  >
-                    Create account
-                  </Link>
-                </>
+                <Link
+                  onClick={closeMobileMenu}
+                  to="/register"
+                  className="btn-primary"
+                >
+                  Sign up
+                </Link>
               )}
             </nav>
           </div>

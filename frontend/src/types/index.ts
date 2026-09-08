@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'owner' | 'admin';
+export type UserRole = 'user' | 'owner';
 
 export type TenantType =
   | 'student'
@@ -327,19 +327,25 @@ export interface ListingFormValues {
 
   address: string;
 
+  location: GeoPoint;
+
   landmark?: string;
 
   availableFrom?: string;
 
-  furnishingStatus: FurnishingStatus;
+  furnishing: 'furnished' | 'semi_furnished' | 'unfurnished';
+
+  bathroom: 'attached' | 'shared' | 'private';
 
   genderPreference: GenderPreference;
 
-  occupancy?: string;
+  occupancy: number;
 
   facilities: string[];
 
-  availabilityStatus: AvailabilityStatus;
+  availabilityStatus: 'available' | 'unavailable' | 'available_soon';
+
+  images: string[];
 
   /**
    * Optional rental duration.

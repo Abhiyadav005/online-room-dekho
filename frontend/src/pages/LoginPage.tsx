@@ -4,10 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '../types';
 
-type ActiveTab = 'user' | 'owner' | 'admin';
-
+type ActiveTab = 'user' | 'owner';
 export function LoginPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +18,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (auth.isAuthenticated) {
-      const route = auth.userRole === 'owner' ? '/owner' : auth.userRole === 'admin' ? '/admin' : '/dashboard';
+      const route = auth.userRole === 'owner' ? '/owner' : '/dashboard';
       navigate(route);
     }
   }, [auth.isAuthenticated, auth.userRole, navigate]);
@@ -32,8 +30,7 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      const role: UserRole = activeTab === 'user' ? 'user' : activeTab === 'owner' ? 'owner' : 'admin';
-      await auth.login(email, password, role);
+      await auth.login(email, password, 'user');
       setSuccess('Login successful! Redirecting...');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
@@ -52,7 +49,11 @@ export function LoginPage() {
           <p className="text-slate-600">Log in to access your account</p>
         </div>
 
-        
+        <div className="mb-5 rounded-xl bg-slate-100 p-1">
+          <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg">
+            Login as a room seeker or room owner using your registered email and password.
+          </p>
+        </div>
 
         {/* Form */}
         <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-soft p-8 space-y-5">
@@ -108,11 +109,8 @@ export function LoginPage() {
             </div>
           </div>
 
-          {/* Role Info */}
           <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg">
-            {activeTab === 'user' && '👤 Login as a room seeker to search and book rooms'}
-            {activeTab === 'owner' && '🏠 Login as a room owner to manage your properties'}
-            {activeTab === 'admin' && '🔐 Admin access - credentials required'}
+            Login as a room seeker or room owner using your registered email and password.
           </div>
 
           {/* Login Button */}
@@ -134,23 +132,9 @@ export function LoginPage() {
             </div>
           </div>
 
-          {/* Registration Links */}
-          {activeTab === 'user' && (
-            <a
-              href="/register?role=user"
-              className="btn-secondary w-full text-center"
-            >
-              Create User Account
-            </a>
-          )}
-          {activeTab === 'owner' && (
-            <a
-              href="/register?role=owner"
-              className="btn-secondary w-full text-center"
-            >
-              Register as Room Owner
-            </a>
-          )}
+          <a href="/register" className="btn-secondary w-full text-center">
+            Create Account
+          </a>
         </form>
 
         {/* Footer */}

@@ -2,6 +2,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiMessage } from '../services/api';
 
 type RegisterRole = 'user' | 'owner';
 
@@ -38,8 +39,18 @@ export function RegisterPage() {
     setSuccess('');
 
     // Validation
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    const normalizedPhone = phone.replace(/[\s()-]/g, '');
+    const phoneForApi = /^\d{10}$/.test(normalizedPhone)
+      ? `+91${normalizedPhone}`
+      : normalizedPhone;
+
+    if (!name.trim() || !email.trim() || !phoneForApi || !password || !confirmPassword) {
       setError('All fields are required');
+      return;
+    }
+
+    if (!/^\+[1-9]\d{7,14}$/.test(phoneForApi)) {
+      setError('Enter a valid phone number, for example +919876543210');
       return;
     }
 
@@ -61,7 +72,7 @@ export function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const values = { name, email, phone, password };
+      const values = { name: name.trim(), email: email.trim(), phone: phoneForApi, password };
       if (role === 'owner') {
         await auth.registerOwner(values);
       } else {
@@ -69,8 +80,7 @@ export function RegisterPage() {
       }
       setSuccess('Registration successful! Redirecting...');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      setError(message);
+      setError(apiMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +111,21 @@ export function RegisterPage() {
               <p className="text-sm font-medium text-emerald-800">{success}</p>
             </div>
           )}
+
+          {/* Account Type */}
+          <div>
+            <label htmlFor="account-type" className="field-label">Account Type</label>
+            <select
+              id="account-type"
+              value={role}
+              onChange={(e) => setRole(e.target.value as RegisterRole)}
+              className="field"
+              disabled={isLoading}
+            >
+              <option value="user">User / Room Seeker</option>
+              <option value="owner">Room Owner</option>
+            </select>
+          </div>
 
           {/* Name Field */}
           <div>
@@ -137,7 +162,7 @@ export function RegisterPage() {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91 XXXXX XXXXX"
+              placeholder="9876543210 or +919876543210"
               className="field"
               required
               disabled={isLoading}

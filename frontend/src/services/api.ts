@@ -5,6 +5,10 @@ interface ApiEnvelope<T> {
   data?: T;
   message?: string;
   code?: string;
+  details?: {
+    fieldErrors?: Record<string, string[]>;
+    formErrors?: string[];
+  };
 }
 
 const baseURL = import.meta.env.VITE_API_URL || '/api';
@@ -103,6 +107,17 @@ export const apiMessage = (
 
     const serverMessage =
       axiosError.response?.data?.message;
+
+    const details = axiosError.response?.data?.details;
+    const fieldErrors = details?.fieldErrors
+      ? Object.entries(details.fieldErrors)
+          .flatMap(([field, messages]) => messages.map((message) => `${field}: ${message}`))
+          .join(' ')
+      : '';
+
+    if (serverMessage && fieldErrors) {
+      return `${serverMessage} ${fieldErrors}`;
+    }
 
     if (serverMessage) {
       return serverMessage;
