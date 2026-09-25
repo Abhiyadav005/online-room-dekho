@@ -110,10 +110,30 @@ export function OwnerPropertiesPage() {
 export function OwnerListingPage() {
   const [values, setValues] = useState<ListingFormValues>(initialValues);
   const [facilitiesText, setFacilitiesText] = useState('wifi, water');
-  const [imagesText, setImagesText] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const handleImageSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    const validFiles = files.filter((file) => file.type.startsWith('image/'));
+
+    if (validFiles.length !== files.length) {
+      setError('Only image files can be uploaded.');
+    }
+
+    const nextFiles = validFiles.slice(0, 12);
+    setSelectedFiles(nextFiles);
+    setPreviewUrls(nextFiles.map((file) => URL.createObjectURL(file)));
+    event.target.value = '';
+  };
+
+  const removeSelectedImage = (index: number) => {
+    setSelectedFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setPreviewUrls((current) => current.filter((_, itemIndex) => itemIndex !== index));
+  };
 
   const update = (field: keyof ListingFormValues, value: string | number) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -131,16 +151,20 @@ export function OwnerListingPage() {
         return;
       }
 
-      const images = imagesText.split(',').map((item) => item.trim()).filter(Boolean);
-      if (images.some((image) => !/^https?:\/\/[^\s]+$/.test(image))) {
-        setError('Each image must be a valid URL beginning with http:// or https://.');
+      let uploadedImages: string[] = [];
+      if (selectedFiles.length > 0) {
+        uploadedImages = await roomService.uploadImages(selectedFiles);
+      }
+
+      if (uploadedImages.length === 0 && selectedFiles.length > 0) {
+        setError('Image upload failed. Please try again with valid image files.');
         return;
       }
 
       await roomService.create({
         ...values,
         facilities,
-        images,
+        images: uploadedImages,
       });
       navigate('/owner/properties');
     } catch (saveError) {
@@ -171,7 +195,33 @@ export function OwnerListingPage() {
         </div>
         <Field label="Description"><textarea className="field min-h-28" value={values.description} onChange={(e) => update('description', e.target.value)} minLength={20} required placeholder="Describe the room, house rules and nearby facilities." /></Field>
         <Field label="Facilities (comma separated)"><input className="field" value={facilitiesText} onChange={(e) => setFacilitiesText(e.target.value)} placeholder="wifi, water, parking" /></Field>
-        <Field label="Image URLs (comma separated, optional)"><input className="field" value={imagesText} onChange={(e) => setImagesText(e.target.value)} placeholder="https://example.com/room.jpg" /></Field>
+        <div className="space-y-3">
+          <label className="field-label">Upload Property Images</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageSelection}
+            className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700"
+          />
+          <p className="text-xs text-slate-500">Upload up to 12 images. JPG, PNG, GIF, and WEBP are supported.</p>
+          {previewUrls.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {previewUrls.map((previewUrl, index) => (
+                <div key={`${previewUrl}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  <img src={previewUrl} alt={`Preview ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeSelectedImage(index)}
+                    className="absolute right-2 top-2 rounded-full bg-slate-950/75 px-1.5 py-1 text-[10px] font-bold text-white"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="grid gap-5 md:grid-cols-2">
           <Field label="Longitude"><input className="field" type="number" step="any" value={values.location.coordinates[0]} onChange={(e) => setValues((current) => ({ ...current, location: { ...current.location, coordinates: [Number(e.target.value), current.location.coordinates[1]] } }))} required /></Field>
           <Field label="Latitude"><input className="field" type="number" step="any" value={values.location.coordinates[1]} onChange={(e) => setValues((current) => ({ ...current, location: { ...current.location, coordinates: [current.location.coordinates[0], Number(e.target.value)] } }))} required /></Field>

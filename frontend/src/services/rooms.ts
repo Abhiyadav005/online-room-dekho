@@ -596,6 +596,34 @@ export const roomService = {
   },
 
   /* ==============================================================
+     OWNER — UPLOAD IMAGES
+  ============================================================== */
+
+  async uploadImages(files: File[]): Promise<string[]> {
+    if (!files.length) {
+      return [];
+    }
+
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('images', file);
+    });
+
+    const response = await api.post(
+      '/owner/rooms/upload-images',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      },
+    );
+
+    const result = unwrap<{ images?: string[] }>(response.data);
+    return result.images ?? [];
+  },
+
+  /* ==============================================================
      OWNER — CREATE ROOM / FLAT
   ============================================================== */
 

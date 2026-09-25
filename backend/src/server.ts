@@ -4,6 +4,9 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import cors from 'cors';
 import hpp from 'hpp';
+import fs from 'node:fs';
+import path from 'node:path';
+import multer from 'multer';
 import { connectDatabase } from './config/database';
 import { logger } from './config/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -36,12 +39,35 @@ import {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const uploadsDir = path.join(process.cwd(), 'uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const allowedImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, uploadsDir),
+    filename: (_req, file, callback) => {
+      const safeName = file.originalname.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9._-]/g, '');
+      callback(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`);
+    }
+  }),
+  limits: { files: 12, fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    if (!allowedImageMimeTypes.has(file.mimetype)) {
+      callback(new Error('Only JPG, PNG, GIF, and WEBP images are allowed'));
+      return;
+    }
+
+    callback(null, true);
+  }
+});
 
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use('/uploads', express.static(uploadsDir));
 app.use(hpp()); // Prevent HTTP parameter pollution
 app.use(cookieParser());
 
@@ -57,6 +83,17 @@ app.get('/', (_req: Request, res: Response) => {
     message: 'Smart Room Finder API is running'
   });
 });
+
+app.post('/api/owner/rooms/upload-images', requireAuth, upload.array('images', 12), asyncHandler(async (req: Request, res: Response) => {
+  const files = Array.isArray((req as Request & { files?: Express.Multer.File[] }).files)
+    ? (req as Request & { files?: Express.Multer.File[] }).files ?? []
+    : [];
+
+  const baseUrl = `${req.protocol}://${req.get('host') ?? 'localhost:5000'}`;
+  const imageUrls = files.map((file) => `${baseUrl}/uploads/${file.filename}`);
+
+  return ok(res, { images: imageUrls });
+}));
 
 // Health check
 app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
