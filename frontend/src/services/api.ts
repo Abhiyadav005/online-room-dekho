@@ -12,6 +12,25 @@ interface ApiEnvelope<T> {
 }
 
 const baseURL = import.meta.env.VITE_API_URL || '/api';
+const authTokenKey = 'roomdekho_token';
+
+const getStoredToken = (): string | null => {
+  try {
+    const token = localStorage.getItem(authTokenKey);
+    return token && token.trim() ? token.trim() : null;
+  } catch {
+    return null;
+  }
+};
+
+const applyAuthToken = (token: string | null): void => {
+  if (token) {
+    axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+    return;
+  }
+
+  delete axios.defaults.headers.common.Authorization;
+};
 
 export const api = axios.create({
   baseURL,
@@ -21,16 +40,23 @@ export const api = axios.create({
   },
 });
 
+applyAuthToken(getStoredToken());
+
 /* ================================================================
    AUTH TOKEN
 ================================================================ */
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('roomdekho_token');
+    const token = getStoredToken();
 
     if (token) {
+      config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
+      applyAuthToken(token);
+    } else {
+      delete config.headers?.Authorization;
+      applyAuthToken(null);
     }
 
     return config;
@@ -171,20 +197,20 @@ export const shouldUseDemoFallback = (
 
 export const authStorage = {
   getToken(): string | null {
-    return localStorage.getItem('roomdekho_token');
+    return getStoredToken();
   },
 
   setToken(token: string): void {
-    localStorage.setItem('roomdekho_token', token);
+    localStorage.setItem(authTokenKey, token.trim());
+    applyAuthToken(token.trim());
   },
 
   clearToken(): void {
-    localStorage.removeItem('roomdekho_token');
+    localStorage.removeItem(authTokenKey);
+    applyAuthToken(null);
   },
 
   isLoggedIn(): boolean {
-    return Boolean(
-      localStorage.getItem('roomdekho_token'),
-    );
+    return Boolean(getStoredToken());
   },
 };

@@ -6,11 +6,17 @@ import { verifyAccessToken } from '../utils/jwt';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const requireAuth = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
-  const header = req.header('authorization');
-  if (!header?.startsWith('Bearer ')) {
+  const header = req.get('authorization') ?? req.get('Authorization');
+  if (!header || !header.toLowerCase().startsWith('bearer ')) {
     throw new AppError('Authentication is required', 401, 'AUTH_REQUIRED');
   }
-  const claims = verifyAccessToken(header.slice(7));
+
+  const token = header.replace(/^Bearer\s+/i, '').trim();
+  if (!token) {
+    throw new AppError('Authentication is required', 401, 'AUTH_REQUIRED');
+  }
+
+  const claims = verifyAccessToken(token);
   if (!Types.ObjectId.isValid(claims.sub)) throw new AppError('Authentication token is invalid', 401, 'INVALID_TOKEN');
 
   const user = await User.findById(claims.sub).select('role isSuspended').lean();

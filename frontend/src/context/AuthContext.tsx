@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { authService } from '../services/auth';
+import { authStorage } from '../services/api';
 import type { User, UserRole } from '../types';
 
 interface AuthContextValue {
@@ -27,18 +28,18 @@ const readStoredUser = (): User | null => {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(readStoredUser);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('roomdekho_token'));
+  const [token, setToken] = useState<string | null>(() => authStorage.getToken());
 
   const saveSession = useCallback((nextUser: User, nextToken: string) => {
     localStorage.setItem('roomdekho_user', JSON.stringify(nextUser));
-    localStorage.setItem('roomdekho_token', nextToken);
+    authStorage.setToken(nextToken);
     setUser(nextUser);
     setToken(nextToken);
   }, []);
 
   const clearSession = useCallback(() => {
     localStorage.removeItem('roomdekho_user');
-    localStorage.removeItem('roomdekho_token');
+    authStorage.clearToken();
     setUser(null);
     setToken(null);
   }, []);
