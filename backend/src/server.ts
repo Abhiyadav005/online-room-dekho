@@ -51,6 +51,12 @@ if (rootUploadsDir !== uploadsDir) {
 }
 
 const allowedImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+const frontendDistDir = path.resolve(__dirname, '..', '..', 'frontend', 'dist');
+const rootFrontendDistDir = path.resolve(process.cwd(), 'frontend', 'dist');
+const distPath = fs.existsSync(frontendDistDir)
+  ? frontendDistDir
+  : (fs.existsSync(rootFrontendDistDir) ? rootFrontendDistDir : null);
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, callback) => callback(null, uploadsDir),
@@ -92,13 +98,21 @@ if (rootUploadsDir !== uploadsDir) {
 app.use(hpp()); // Prevent HTTP parameter pollution
 app.use(cookieParser());
 
+if (distPath) {
+  app.use(express.static(distPath));
+}
+
 // Logger middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.path}`);
   next();
 });
+
 // Root route
 app.get('/', (_req: Request, res: Response) => {
+  if (distPath) {
+    return res.sendFile(path.join(distPath, 'index.html'));
+  }
   res.json({
     success: true,
     message: 'Smart Room Finder API is running'
@@ -121,16 +135,28 @@ app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
   return ok(res, { status: 'ok', timestamp: new Date() });
 }));
 
-// ============= PUBLIC ROUTES =============
-app.post('/api/auth/register', authRateLimit, validate(registerSchema), asyncHandler(authController.register));
-app.post('/api/auth/login', authRateLimit, validate(loginSchema), asyncHandler(authController.login));
-app.post('/api/auth/send-otp', otpRateLimit, validate(sendOtpSchema), asyncHandler(authController.sendOtp));
-app.post('/api/auth/forgot-password', otpRateLimit, validate(verifyOtpSchema), asyncHandler(authController.forgotPassword));
-app.post('/api/auth/reset-password', authRateLimit, validate(resetPasswordSchema), asyncHandler(authController.resetPassword));
+// ============= PUBLIC & AUTH ROUTES =============
+const authRouter = express.Router();
+authRouter.post('/register', authRateLimit, validate(registerSchema), asyncHandler(authController.register));
+authRouter.post('/login', authRateLimit, validate(loginSchema), asyncHandler(authController.login));
+authRouter.post('/refresh', asyncHandler(authController.refresh));
+authRouter.post('/send-otp', otpRateLimit, validate(sendOtpSchema), asyncHandler(authController.sendOtp));
+authRouter.post('/verify-otp', otpRateLimit, validate(verifyOtpSchema), asyncHandler(authController.verifyOtp));
+authRouter.post('/forgot-password', otpRateLimit, validate(verifyOtpSchema), asyncHandler(authController.forgotPassword));
+authRouter.post('/reset-password', authRateLimit, validate(resetPasswordSchema), asyncHandler(authController.resetPassword));
+authRouter.post('/logout', requireAuth, asyncHandler(authController.logout));
 
-// ============= PROTECTED ROUTES (All authenticated users) =============
-app.use('/api/auth/logout', requireAuth);
-app.post('/api/auth/logout', asyncHandler(authController.logout));
+// Mount under both /api/auth and /auth
+app.use('/api/auth', authRouter);
+app.use('/auth', authRouter);
+
+// Direct aliases for convenience (/api/login, /login, /api/register, /register)
+app.post('/api/register', authRateLimit, validate(registerSchema), asyncHandler(authController.register));
+app.post('/api/login', authRateLimit, validate(loginSchema), asyncHandler(authController.login));
+app.post('/register', authRateLimit, validate(registerSchema), asyncHandler(authController.register));
+app.post('/login', authRateLimit, validate(loginSchema), asyncHandler(authController.login));
+app.post('/api/logout', requireAuth, asyncHandler(authController.logout));
+app.post('/logout', requireAuth, asyncHandler(authController.logout));
 
 // Room search and discovery (public)
 app.get('/api/rooms/search', asyncHandler(roomController.listRooms));
@@ -177,6 +203,22 @@ app.post('/api/admin/rooms/:id/reject', asyncHandler(adminController.rejectRoom)
 
 app.get('/api/admin/reports', asyncHandler(adminController.listReports));
 app.put('/api/admin/reports/:id', validate(reportStatusSchema), asyncHandler(adminController.updateReport));
+
+// ============= SPA ROUTING & FALLBACK =============
+if (distPath) {
+  app.get('*', (req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/auth')) {
+      return next();
+    }
+    return res.sendFile(path.join(distPath, 'index.html'));
+  });
+} else {
+  // If frontend is not built, redirect browser navigations for /login and /register to frontend dev server
+  app.get(['/login', '/register'], (req: Request, res: Response) => {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}${req.path}`);
+  });
+}
 
 // ============= ERROR HANDLING =============
 app.use((req: Request, res: Response) => {

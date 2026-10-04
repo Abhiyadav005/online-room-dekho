@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiMessage } from '../services/api';
 
@@ -254,9 +254,9 @@ export function RegisterPage() {
           </div>
 
           {/* Login Link */}
-          <a href="/login" className="btn-secondary w-full text-center">
+          <Link to="/login" className="btn-secondary w-full text-center">
             Log In
-          </a>
+          </Link>
         </form>
 
         {/* Footer */}

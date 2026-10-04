@@ -103,12 +103,20 @@ export function Header() {
           ====================================================== */}
           <div className="hidden items-center gap-2 lg:flex">
             {!isAuthenticated ? (
-              <Link
-                to="/register"
-                className="btn-primary !min-h-10 !rounded-xl !px-5"
-              >
-                Sign up
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="btn-secondary !min-h-10 !rounded-xl !px-4"
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn-primary !min-h-10 !rounded-xl !px-5"
+                >
+                  Sign up
+                </Link>
+              </div>
             ) : (
               <>
                 {/* Saved rooms — only for normal users */}
@@ -356,13 +364,22 @@ export function Header() {
                   </button>
                 </>
               ) : (
-                <Link
-                  onClick={closeMobileMenu}
-                  to="/register"
-                  className="btn-primary"
-                >
-                  Sign up
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    onClick={closeMobileMenu}
+                    to="/login"
+                    className="btn-secondary justify-center"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    onClick={closeMobileMenu}
+                    to="/register"
+                    className="btn-primary justify-center"
+                  >
+                    Sign up
+                  </Link>
+                </div>
               )}
             </nav>
           </div>

@@ -111,6 +111,30 @@ const router = createBrowserRouter([
           },
         ],
       },
+      {
+        path: '*',
+        element: (
+          <div className="container-page py-20 text-center">
+            <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
+              <span className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-700">
+                404 Error
+              </span>
+              <h1 className="mt-4 text-2xl font-extrabold text-slate-900">Page not found</h1>
+              <p className="mt-2 text-sm text-slate-600">
+                The page you are looking for doesn't exist or has moved.
+              </p>
+              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
+                <a href="/" className="btn-primary justify-center">
+                  Go to Homepage
+                </a>
+                <a href="/login" className="btn-secondary justify-center">
+                  Go to Login
+                </a>
+              </div>
+            </div>
+          </div>
+        ),
+      },
     ],
   },
 ]);
