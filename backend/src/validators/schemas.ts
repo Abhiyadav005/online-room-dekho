@@ -67,7 +67,19 @@ const roomFields = {
   genderPreference: z.enum(['male', 'female', 'any']).default('any'),
   occupancy: z.coerce.number().int().min(1).max(50).default(1),
   roomSizeSqFt: z.coerce.number().finite().positive().max(100_000).optional(),
-  images: z.array(z.string().url().max(2_048)).max(12).default([]),
+  images: z
+    .array(
+      z
+        .string()
+        .trim()
+        .max(2_048)
+        .refine(
+          (val) => val.startsWith('/uploads/') || /^https?:\/\//i.test(val) || val.startsWith('data:image/'),
+          'Image must be a valid URL or uploaded image path'
+        )
+    )
+    .max(12)
+    .default([]),
   availabilityStatus: z.enum(['available', 'unavailable', 'available_soon']).default('available')
 };
 

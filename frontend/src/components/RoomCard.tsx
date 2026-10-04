@@ -1,6 +1,7 @@
 import {
   Bath,
   BedDouble,
+  Camera,
   Heart,
   MapPin,
   Ruler,
@@ -8,14 +9,13 @@ import {
   Star,
   UsersRound,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { Room } from '../types';
 import { currency } from '../utils/format';
 import { AvailabilityBadge, VerificationBadge } from './StatusBadge';
-
-const fallbackImage =
-  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560"%3E%3Crect width="900" height="560" fill="%23eef2ff"/%3E%3Cpath d="M150 440V260l180-150 180 150v180M510 440V210l120-100 120 100v230" fill="none" stroke="%234f46e5" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/%3E%3C/svg%3E';
+import { fallbackRoomImage, getRoomImageUrl } from '../utils/images';
 
 interface RoomCardProps {
   room: Room;
@@ -60,7 +60,13 @@ export function RoomCard({
   favourite = false,
   onFavourite,
 }: RoomCardProps) {
-  const image = room.images?.[0] || fallbackImage;
+  const [imageSrc, setImageSrc] = useState<string>(() =>
+    getRoomImageUrl(room.images?.[0])
+  );
+
+  useEffect(() => {
+    setImageSrc(getRoomImageUrl(room.images?.[0]));
+  }, [room.images]);
 
   const propertyLabel = getPropertyLabel(room.propertyType);
   const roomTypeLabel = getRoomTypeLabel(room.roomType);
@@ -81,9 +87,9 @@ export function RoomCard({
         />
 
         <img
-          src={image}
-          onError={(event) => {
-            event.currentTarget.src = fallbackImage;
+          src={imageSrc}
+          onError={() => {
+            setImageSrc(fallbackRoomImage);
           }}
           alt={`Photo of ${room.title}`}
           loading="lazy"
@@ -93,9 +99,15 @@ export function RoomCard({
         {/* Image overlay */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
 
-        {/* Availability */}
-        <div className="absolute left-3 top-3 z-20">
+        {/* Availability & Image count */}
+        <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5">
           <AvailabilityBadge status={room.availabilityStatus} />
+          {room.images && room.images.length > 1 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-950/70 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-md">
+              <Camera size={12} />
+              {room.images.length}
+            </span>
+          )}
         </div>
 
         {/* Favourite */}

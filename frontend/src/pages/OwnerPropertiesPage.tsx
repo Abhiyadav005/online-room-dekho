@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Camera } from 'lucide-react';
 import { roomService } from '../services/rooms';
 import { apiMessage } from '../services/api';
 import type { ListingFormValues, Room } from '../types';
 import { currency } from '../utils/format';
+import { fallbackRoomImage, getRoomImageUrl } from '../utils/images';
 
 const initialValues: ListingFormValues = {
   title: '',
@@ -87,21 +89,88 @@ export function OwnerPropertiesPage() {
           <Link to="/owner/properties/new" className="btn-primary mt-5">List a room</Link>
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2">
-        {rooms.map((room) => (
-          <article key={room._id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="font-bold text-slate-950">{room.title}</h2>
-                <p className="mt-1 text-sm text-slate-500">{[room.area, room.city].filter(Boolean).join(', ')}</p>
+      <div className="grid gap-5 md:grid-cols-2">
+        {rooms.map((room) => {
+          const mainImage = getRoomImageUrl(room.images?.[0]);
+          return (
+            <article
+              key={room._id}
+              className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+            >
+              <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                <Link
+                  to={`/rooms/${room._id}`}
+                  aria-label={`View ${room.title}`}
+                  className="absolute inset-0 z-10"
+                />
+                <img
+                  src={mainImage}
+                  alt={room.title}
+                  onError={(e) => {
+                    e.currentTarget.src = fallbackRoomImage;
+                  }}
+                  className="size-full object-cover transition duration-300 hover:scale-105"
+                />
+                <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5">
+                  <span className="rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold capitalize text-brand-700 shadow-sm backdrop-blur-md">
+                    {room.availabilityStatus}
+                  </span>
+                  {room.images && room.images.length > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-950/75 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md">
+                      <Camera size={13} />
+                      {room.images.length} {room.images.length === 1 ? 'photo' : 'photos'}
+                    </span>
+                  )}
+                </div>
               </div>
-              <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold capitalize text-brand-700">{room.availabilityStatus}</span>
-            </div>
-            <p className="mt-4 text-lg font-bold text-slate-950">{currency(room.monthlyRent)} <span className="text-sm font-medium text-slate-500">/ month</span></p>
-            <p className="mt-2 line-clamp-2 text-sm text-slate-600">{room.description}</p>
-            <button type="button" onClick={() => void deactivate(room)} className="btn-secondary mt-5 !min-h-9 text-sm">Remove listing</button>
-          </article>
-        ))}
+
+              <div className="flex flex-1 flex-col p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-950">
+                      <Link
+                        to={`/rooms/${room._id}`}
+                        className="transition hover:text-brand-600"
+                      >
+                        {room.title}
+                      </Link>
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {[room.area, room.city].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-lg font-bold text-slate-950">
+                  {currency(room.monthlyRent)}{' '}
+                  <span className="text-sm font-medium text-slate-500">
+                    / month
+                  </span>
+                </p>
+
+                <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                  {room.description}
+                </p>
+
+                <div className="mt-auto flex items-center gap-3 pt-5">
+                  <Link
+                    to={`/rooms/${room._id}`}
+                    className="btn-secondary flex-1 !min-h-9 text-center text-sm"
+                  >
+                    View
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void deactivate(room)}
+                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
