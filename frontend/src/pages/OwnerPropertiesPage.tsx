@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Camera } from 'lucide-react';
+import { Camera, Plus, Trash2, UploadCloud } from 'lucide-react';
 import { roomService } from '../services/rooms';
 import { apiMessage } from '../services/api';
 import type { ListingFormValues, Room } from '../types';
@@ -182,26 +182,66 @@ export function OwnerListingPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const handleImageSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
+  useEffect(() => {
+    const urls = selectedFiles.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [selectedFiles]);
+
+  const addFiles = (files: File[]) => {
+    if (!files.length) return;
+
     const validFiles = files.filter((file) => file.type.startsWith('image/'));
 
     if (validFiles.length !== files.length) {
-      setError('Only image files can be uploaded.');
+      setError('Only image files (JPG, PNG, GIF, WEBP) can be uploaded.');
     }
 
-    const nextFiles = validFiles.slice(0, 12);
-    setSelectedFiles(nextFiles);
-    setPreviewUrls(nextFiles.map((file) => URL.createObjectURL(file)));
+    setSelectedFiles((current) => {
+      const existingKeys = new Set(current.map((f) => `${f.name}-${f.size}-${f.lastModified}`));
+      const newUnique = validFiles.filter((f) => !existingKeys.has(`${f.name}-${f.size}-${f.lastModified}`));
+
+      if (current.length + newUnique.length > 12) {
+        setError('Maximum 12 pictures allowed per room. Extra pictures were ignored.');
+      }
+
+      return [...current, ...newUnique].slice(0, 12);
+    });
+  };
+
+  const handleImageSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    addFiles(files);
     event.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files ?? []);
+    addFiles(files);
   };
 
   const removeSelectedImage = (index: number) => {
     setSelectedFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
-    setPreviewUrls((current) => current.filter((_, itemIndex) => itemIndex !== index));
   };
 
   const update = (field: keyof ListingFormValues, value: string | number) => {
@@ -265,29 +305,101 @@ export function OwnerListingPage() {
         <Field label="Description"><textarea className="field min-h-28" value={values.description} onChange={(e) => update('description', e.target.value)} minLength={20} required placeholder="Describe the room, house rules and nearby facilities." /></Field>
         <Field label="Facilities (comma separated)"><input className="field" value={facilitiesText} onChange={(e) => setFacilitiesText(e.target.value)} placeholder="wifi, water, parking" /></Field>
         <div className="space-y-3">
-          <label className="field-label">Upload Property Images</label>
+          <div className="flex items-center justify-between">
+            <label className="field-label !mb-0">Property Pictures</label>
+            <span className="text-xs font-semibold text-slate-500">
+              {selectedFiles.length} / 12 photos selected
+            </span>
+          </div>
+
           <input
+            ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={handleImageSelection}
-            className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700"
+            className="hidden"
+            id="room-images-upload"
           />
-          <p className="text-xs text-slate-500">Upload up to 12 images. JPG, PNG, GIF, and WEBP are supported.</p>
-          {previewUrls.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {previewUrls.map((previewUrl, index) => (
-                <div key={`${previewUrl}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                  <img src={previewUrl} alt={`Preview ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
+
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
+              isDragging
+                ? 'border-brand-500 bg-brand-50/60'
+                : 'border-slate-300 bg-slate-50 hover:border-brand-400 hover:bg-slate-100/70'
+            }`}
+          >
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-brand-100 text-brand-700">
+              <UploadCloud size={24} />
+            </div>
+            <p className="mt-3 text-sm font-semibold text-slate-800">
+              Choose one or multiple pictures (or drag and drop)
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Select multiple photos at once or add more one-by-one (Up to 12 images: JPG, PNG, WEBP, GIF)
+            </p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="btn-secondary !min-h-9 mt-3 inline-flex items-center gap-1.5 text-xs font-semibold"
+            >
+              <Plus size={14} />
+              Browse Pictures
+            </button>
+          </div>
+
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <p className="text-xs font-medium text-slate-500">
+                Selected Photos (First photo is the main cover image):
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {previewUrls.map((previewUrl, index) => (
+                  <div
+                    key={`${previewUrl}-${index}`}
+                    className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-xs"
+                  >
+                    <img
+                      src={previewUrl}
+                      alt={`Selected room image ${index + 1}`}
+                      className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
+                    {index === 0 && (
+                      <span className="absolute left-2 top-2 rounded-md bg-brand-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
+                        Cover Photo
+                      </span>
+                    )}
+                    <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeSelectedImage(index)}
+                      title="Remove this photo"
+                      className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+                {selectedFiles.length < 12 && (
                   <button
                     type="button"
-                    onClick={() => removeSelectedImage(index)}
-                    className="absolute right-2 top-2 rounded-full bg-slate-950/75 px-1.5 py-1 text-[10px] font-bold text-white"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex aspect-[4/3] flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white text-slate-500 transition hover:border-brand-500 hover:bg-brand-50/40 hover:text-brand-600"
                   >
-                    Remove
+                    <Plus size={20} />
+                    <span className="mt-1 text-xs font-semibold">Add More</span>
                   </button>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           )}
         </div>
