@@ -42,6 +42,7 @@ const applyAuthToken = (token: string | null): void => {
 export const api = axios.create({
   baseURL,
   timeout: 12000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -109,7 +110,7 @@ export const unwrap = <T>(
     if (envelope.success === false) {
       throw new Error(
         envelope.message ||
-          'The request could not be completed.',
+        'The request could not be completed.',
       );
     }
 
@@ -144,8 +145,8 @@ export const apiMessage = (
     const details = axiosError.response?.data?.details;
     const fieldErrors = details?.fieldErrors
       ? Object.entries(details.fieldErrors)
-          .flatMap(([field, messages]) => messages.map((message) => `${field}: ${message}`))
-          .join(' ')
+        .flatMap(([field, messages]) => messages.map((message) => `${field}: ${message}`))
+        .join(' ')
       : '';
 
     if (serverMessage && fieldErrors) {
