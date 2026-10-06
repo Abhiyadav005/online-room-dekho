@@ -79,14 +79,41 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
 
-  (error: AxiosError<ApiEnvelope<unknown>>) => {
-    /*
-     * If the backend returns 401, remove the invalid token.
-     * We don't redirect automatically here because the UI/router
-     * should decide what to show to the user.
-     */
+  async (error: AxiosError<ApiEnvelope<unknown>>) => {
+    const originalRequest = error.config as (typeof error.config & { _retry?: boolean });
+
+    // If 401 occurs and this request hasn't been retried yet, attempt silent refresh
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
+      originalRequest._retry = true;
+      try {
+        const refreshResponse = await axios.post<{ success: boolean; data?: { token?: string } }>(
+          `${baseURL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+        const newToken = refreshResponse.data?.data?.token;
+        if (newToken) {
+          authStorage.setToken(newToken);
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          }
+          return api(originalRequest);
+        }
+      } catch {
+        // Refresh failed, clean session
+        localStorage.removeItem(authTokenKey);
+        localStorage.removeItem('roomdekho_user');
+      }
+    }
+
     if (error.response?.status === 401) {
-      localStorage.removeItem('roomdekho_token');
+      localStorage.removeItem(authTokenKey);
     }
 
     return Promise.reject(error);

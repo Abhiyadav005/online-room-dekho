@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Camera, Plus, Trash2, UploadCloud } from 'lucide-react';
+import { Camera, Lock, Plus, Trash2, UploadCloud, UserX } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { roomService } from '../services/rooms';
-import { apiMessage } from '../services/api';
+import { apiMessage, authStorage } from '../services/api';
 import type { ListingFormValues, Room } from '../types';
 import { currency } from '../utils/format';
 import { fallbackRoomImage, getRoomImageUrl } from '../utils/images';
@@ -42,8 +43,13 @@ export function OwnerPropertiesPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user, isAuthenticated } = useAuth();
 
   const loadRooms = async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await roomService.listOwner();
@@ -58,7 +64,7 @@ export function OwnerPropertiesPage() {
 
   useEffect(() => {
     void loadRooms();
-  }, []);
+  }, [isAuthenticated]);
 
   const deactivate = async (room: Room) => {
     if (!window.confirm(`Remove "${room.title}" from your listings?`)) return;
@@ -69,6 +75,27 @@ export function OwnerPropertiesPage() {
       setError(apiMessage(removeError, 'Unable to remove this listing.'));
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <section className="mx-auto max-w-md py-12 text-center">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <Lock size={28} />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-slate-900">Sign in to View Properties</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Please log in with your room owner account to view and manage your listings.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link to="/login" state={{ from: '/owner/properties' }} className="btn-primary">
+              Log in as Owner
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-6">
@@ -185,6 +212,7 @@ export function OwnerListingPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -251,6 +279,17 @@ export function OwnerListingPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+
+    if (!isAuthenticated || !authStorage.getToken()) {
+      setError('You are not logged in. Please log in as a room owner to publish a listing.');
+      return;
+    }
+
+    if (user?.role !== 'owner') {
+      setError('Only room owners can publish listings. Please switch to an owner account.');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const facilities = facilitiesText.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
@@ -277,11 +316,83 @@ export function OwnerListingPage() {
       });
       navigate('/owner/properties');
     } catch (saveError) {
-      setError(apiMessage(saveError, 'Unable to create this listing.'));
+      const msg = apiMessage(saveError, 'Unable to create this listing.');
+      if (
+        msg.toLowerCase().includes('authentication') ||
+        msg.toLowerCase().includes('token') ||
+        msg.toLowerCase().includes('permission') ||
+        msg.toLowerCase().includes('forbidden')
+      ) {
+        setError('Your login session expired or authentication is required. Please log in again.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <section className="mx-auto max-w-xl py-12 text-center">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <Lock size={28} />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-slate-900">Authentication Required</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Please log in with a Room Owner account to list and add properties.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link
+              to="/login"
+              state={{ from: '/owner/properties/new' }}
+              className="btn-primary justify-center"
+            >
+              Log in as Owner
+            </Link>
+            <Link
+              to="/register"
+              className="btn-secondary justify-center"
+            >
+              Register New Owner Account
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (user && user.role !== 'owner') {
+    return (
+      <section className="mx-auto max-w-xl py-12 text-center">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 shadow-sm">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <UserX size={28} />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-amber-950">Room Owner Account Required</h2>
+          <p className="mt-2 text-sm text-amber-800">
+            You are currently signed in as a room seeker ({user.email}). Only room owners can publish room listings.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link
+              to="/register"
+              className="btn-primary justify-center"
+            >
+              Create Owner Account
+            </Link>
+            <Link
+              to="/login"
+              state={{ from: '/owner/properties/new' }}
+              className="btn-secondary justify-center"
+            >
+              Switch to Owner Account
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto max-w-3xl space-y-6">
