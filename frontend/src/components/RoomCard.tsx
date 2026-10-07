@@ -7,6 +7,7 @@ import {
   Ruler,
   ShieldCheck,
   Star,
+  Trash2,
   UsersRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -16,11 +17,16 @@ import type { Room } from '../types';
 import { currency } from '../utils/format';
 import { AvailabilityBadge, VerificationBadge } from './StatusBadge';
 import { fallbackRoomImage, getRoomImageUrl } from '../utils/images';
+import { useAuth } from '../context/AuthContext';
+import { roomService } from '../services/rooms';
+import { apiMessage } from '../services/api';
 
 interface RoomCardProps {
   room: Room;
   favourite?: boolean;
   onFavourite?: (room: Room, next: boolean) => void;
+  onRemove?: (room: Room) => void | Promise<void>;
+  canRemove?: boolean;
 }
 
 const getPropertyLabel = (propertyType: string) => {
@@ -59,14 +65,55 @@ export function RoomCard({
   room,
   favourite = false,
   onFavourite,
+  onRemove,
+  canRemove,
 }: RoomCardProps) {
+  const { user } = useAuth();
   const [imageSrc, setImageSrc] = useState<string>(() =>
     getRoomImageUrl(room.images?.[0])
   );
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRemoved, setIsRemoved] = useState(false);
 
   useEffect(() => {
     setImageSrc(getRoomImageUrl(room.images?.[0]));
   }, [room.images]);
+
+  const ownerId = typeof room.owner === 'string' ? room.owner : room.owner?._id;
+  const isOwnerOfRoom = Boolean(
+    user &&
+    (user.role === 'owner' || user.role === 'admin') &&
+    (ownerId ? user._id === ownerId : user.role === 'owner')
+  );
+
+  const showRemove = canRemove ?? (Boolean(onRemove) || isOwnerOfRoom);
+
+  const handleRemove = async (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!window.confirm(`Are you sure you want to remove "${room.title}"?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      if (onRemove) {
+        await onRemove(room);
+      } else {
+        await roomService.remove(room._id);
+      }
+      setIsRemoved(true);
+    } catch (error) {
+      alert(apiMessage(error, 'Unable to remove this room listing.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (isRemoved) {
+    return null;
+  }
 
   const propertyLabel = getPropertyLabel(room.propertyType);
   const roomTypeLabel = getRoomTypeLabel(room.roomType);
@@ -141,6 +188,20 @@ export function RoomCard({
             strokeWidth={2.2}
           />
         </button>
+
+        {/* Remove option on card */}
+        {showRemove && (
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={handleRemove}
+            aria-label={`Remove ${room.title}`}
+            title="Remove room listing"
+            className="absolute right-14 top-3 z-20 grid size-10 place-items-center rounded-full border border-white/70 bg-white/95 text-rose-600 shadow-sm backdrop-blur-md transition-all hover:bg-rose-600 hover:text-white disabled:opacity-60"
+          >
+            <Trash2 size={17} />
+          </button>
+        )}
 
         {/* AI match */}
         {room.aiMatch !== undefined && (
@@ -311,12 +372,26 @@ export function RoomCard({
         {/* =======================================================
             BOTTOM ACTION
         ======================================================== */}
-        <Link
-          to={`/rooms/${room._id}`}
-          className="mt-3 flex min-h-10 w-full items-center justify-center rounded-xl border border-brand-100 bg-brand-50 px-3 text-xs font-bold text-brand-700 transition hover:border-brand-200 hover:bg-brand-100"
-        >
-          View room details
-        </Link>
+        <div className="mt-3 flex items-center gap-2">
+          <Link
+            to={`/rooms/${room._id}`}
+            className="flex min-h-10 flex-1 items-center justify-center rounded-xl border border-brand-100 bg-brand-50 px-3 text-xs font-bold text-brand-700 transition hover:border-brand-200 hover:bg-brand-100"
+          >
+            View room details
+          </Link>
+          {showRemove && (
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleRemove}
+              title="Remove room listing"
+              className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 text-xs font-bold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:opacity-60"
+            >
+              <Trash2 size={14} />
+              {isDeleting ? 'Removing...' : 'Remove'}
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );
