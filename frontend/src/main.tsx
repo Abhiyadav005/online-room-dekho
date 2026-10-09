@@ -16,6 +16,7 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage').then(m =>
 const OwnerDashboardPage = React.lazy(() => import('./pages/OwnerDashboardPage').then(m => ({ default: m.OwnerDashboardPage })));
 const OwnerPropertiesPage = React.lazy(() => import('./pages/OwnerPropertiesPage').then(m => ({ default: m.OwnerPropertiesPage })));
 const OwnerListingPage = React.lazy(() => import('./pages/OwnerPropertiesPage').then(m => ({ default: m.OwnerListingPage })));
+const OwnerOverview = React.lazy(() => import('./pages/OwnerOverview').then(m => ({ default: m.OwnerOverview })));
 const RoomDetailPage = React.lazy(() => import('./pages/RoomDetailPage').then(m => ({ default: m.RoomDetailPage })));
 
 // Placeholder pages for dashboard sections
@@ -23,8 +24,6 @@ const DashboardOverview = () => <div className="space-y-6"><h1 className="text-3
 const DashboardFavourites = () => <div className="space-y-6"><h1 className="text-3xl font-bold">Saved Rooms</h1><p className="text-slate-600">Your saved rooms will appear here</p></div>;
 const DashboardEnquiries = () => <div className="space-y-6"><h1 className="text-3xl font-bold">Enquiries</h1><p className="text-slate-600">Your enquiries will appear here</p></div>;
 const DashboardProfile = () => <div className="space-y-6"><h1 className="text-3xl font-bold">Profile Settings</h1><p className="text-slate-600">Manage your profile here</p></div>;
-
-const OwnerOverview = () => <div className="space-y-6"><h1 className="text-3xl font-bold">Properties Overview</h1><p className="text-slate-600">Your properties overview will appear here</p></div>;
 const OwnerEnquiries = () => <div className="space-y-6"><h1 className="text-3xl font-bold">Enquiries</h1><p className="text-slate-600">Enquiries for your properties will appear here</p></div>;
 const OwnerProfile = () => <div className="space-y-6"><h1 className="text-3xl font-bold">Owner Profile</h1><p className="text-slate-600">Manage your owner profile here</p></div>;
 

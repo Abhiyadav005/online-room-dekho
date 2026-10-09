@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Camera, Lock, Plus, Trash2, UploadCloud, UserX } from 'lucide-react';
+import { AlertTriangle, Camera, CheckCircle2, Eye, Lock, Plus, Trash2, UploadCloud, UserX, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { roomService } from '../services/rooms';
 import { apiMessage, authStorage } from '../services/api';
@@ -43,6 +43,9 @@ export function OwnerPropertiesPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { user, isAuthenticated } = useAuth();
 
   const loadRooms = async () => {
@@ -66,13 +69,32 @@ export function OwnerPropertiesPage() {
     void loadRooms();
   }, [isAuthenticated]);
 
-  const deactivate = async (room: Room) => {
-    if (!window.confirm(`Remove "${room.title}" from your listings?`)) return;
+  const confirmDelete = async () => {
+    if (!roomToDelete) return;
+    setIsDeleting(true);
+    setError('');
     try {
-      await roomService.remove(room._id);
-      await loadRooms();
+      await roomService.remove(roomToDelete._id);
+      setRooms((current) => current.filter((r) => r._id !== roomToDelete._id));
+      setSuccessMessage(`"${roomToDelete.title}" was removed successfully.`);
+      setRoomToDelete(null);
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (removeError) {
-      setError(apiMessage(removeError, 'Unable to remove this listing.'));
+      setError(apiMessage(removeError, 'Unable to remove this room listing.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleAvailability = async (room: Room) => {
+    const nextStatus = room.availabilityStatus === 'available' ? 'unavailable' : 'available';
+    try {
+      const updated = await roomService.changeAvailability(room._id, nextStatus);
+      setRooms((current) =>
+        current.map((r) => (r._id === room._id ? { ...r, availabilityStatus: updated.availabilityStatus } : r))
+      );
+    } catch (err) {
+      setError(apiMessage(err, 'Failed to update room availability.'));
     }
   };
 
@@ -107,6 +129,12 @@ export function OwnerPropertiesPage() {
         <Link to="/owner/properties/new" className="btn-primary">Add a room</Link>
       </div>
 
+      {successMessage && (
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 shadow-sm">
+          <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
+          <span>{successMessage}</span>
+        </div>
+      )}
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">{error}</div>}
       {isLoading && <p className="text-slate-600">Loading your listings...</p>}
       {!isLoading && !error && rooms.length === 0 && (
@@ -119,6 +147,7 @@ export function OwnerPropertiesPage() {
       <div className="grid gap-5 md:grid-cols-2">
         {rooms.map((room) => {
           const mainImage = getRoomImageUrl(room.images?.[0]);
+          const isAvailable = room.availabilityStatus === 'available';
           return (
             <article
               key={room._id}
@@ -139,8 +168,14 @@ export function OwnerPropertiesPage() {
                   className="size-full object-cover transition duration-300 hover:scale-105"
                 />
                 <div className="absolute left-3 top-3 z-20 flex items-center gap-1.5">
-                  <span className="rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold capitalize text-brand-700 shadow-sm backdrop-blur-md">
-                    {room.availabilityStatus}
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-bold capitalize shadow-sm backdrop-blur-md ${
+                      isAvailable
+                        ? 'bg-emerald-500/90 text-white'
+                        : 'bg-amber-500/90 text-white'
+                    }`}
+                  >
+                    {room.availabilityStatus.replace('_', ' ')}
                   </span>
                   {room.images && room.images.length > 0 && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-950/75 px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md">
@@ -179,18 +214,31 @@ export function OwnerPropertiesPage() {
                   {room.description}
                 </p>
 
-                <div className="mt-auto flex items-center gap-3 pt-5">
+                <div className="mt-auto flex flex-wrap items-center gap-2.5 pt-5 border-t border-slate-100">
                   <Link
                     to={`/rooms/${room._id}`}
-                    className="btn-secondary flex-1 !min-h-9 text-center text-sm"
+                    className="btn-secondary !min-h-9 !py-1.5 text-center text-xs flex-1 inline-flex items-center justify-center gap-1.5"
                   >
+                    <Eye size={14} />
                     View
                   </Link>
+
                   <button
                     type="button"
-                    onClick={() => void deactivate(room)}
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                    onClick={() => void toggleAvailability(room)}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                    title="Click to toggle availability"
                   >
+                    {isAvailable ? 'Mark Rented' : 'Mark Available'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRoomToDelete(room)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 hover:border-rose-300"
+                    title="Remove this room listing from your dashboard"
+                  >
+                    <Trash2 size={14} />
                     Remove
                   </button>
                 </div>
@@ -199,6 +247,69 @@ export function OwnerPropertiesPage() {
           );
         })}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {roomToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-dialog-title"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 transition-all">
+            <div className="flex items-start gap-4">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <Trash2 size={22} />
+              </div>
+              <div className="flex-1">
+                <h3 id="delete-dialog-title" className="text-lg font-bold text-slate-900">
+                  Remove Room Listing?
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Are you sure you want to remove this property? This will permanently delete the listing from the platform and seekers won't be able to find it.
+                </p>
+              </div>
+            </div>
+
+            {/* Room Preview */}
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <img
+                src={getRoomImageUrl(roomToDelete.images?.[0])}
+                alt={roomToDelete.title}
+                onError={(e) => {
+                  e.currentTarget.src = fallbackRoomImage;
+                }}
+                className="size-14 rounded-lg object-cover"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-slate-900 truncate text-sm">{roomToDelete.title}</p>
+                <p className="text-xs text-slate-500">{[roomToDelete.area, roomToDelete.city].filter(Boolean).join(', ')}</p>
+                <p className="text-xs font-bold text-brand-700 mt-0.5">{currency(roomToDelete.monthlyRent)}/month</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setRoomToDelete(null)}
+                className="btn-secondary !min-h-10 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => void confirmDelete()}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"
+              >
+                <Trash2 size={16} />
+                {isDeleting ? 'Removing...' : 'Yes, Remove Room'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

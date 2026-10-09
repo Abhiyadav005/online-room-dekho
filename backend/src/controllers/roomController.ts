@@ -152,6 +152,14 @@ export async function deactivateRoom(req: Request, res: Response): Promise<Respo
   return ok(res, { deactivated: true });
 }
 
+export async function deleteRoom(req: Request, res: Response): Promise<Response> {
+  if (!req.auth) throw new AppError('Authentication is required', 401, 'AUTH_REQUIRED');
+  const room = await Room.findOneAndDelete({ _id: req.params.id, owner: req.auth.userId });
+  if (!room) throw new AppError('Room not found or not owned by you', 404, 'ROOM_NOT_FOUND');
+  await recordAudit(req, { actor: req.auth.userId, action: 'room.delete', entityType: 'room', entityId: room._id });
+  return ok(res, { deleted: true, message: 'Room listing removed successfully' });
+}
+
 export async function updateAvailability(req: Request, res: Response): Promise<Response> {
   if (!req.auth) throw new AppError('Authentication is required', 401, 'AUTH_REQUIRED');
   const room = await Room.findOneAndUpdate({ _id: req.params.id, owner: req.auth.userId }, { $set: req.body }, { new: true, runValidators: true });

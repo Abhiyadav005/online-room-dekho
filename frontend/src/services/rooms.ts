@@ -670,34 +670,34 @@ export const roomService = {
 
   async changeAvailability(
     id: string,
-    availabilityStatus:
-      Room['availabilityStatus'],
+    availabilityStatus: Room['availabilityStatus'],
   ) {
-    const response =
-      await api.post(
-        `/owner/rooms/${id}/deactivate`,
-      );
-
-    return normaliseRoom(
-      unwrap<Room>(
-        response.data,
-      ),
-    );
+    const response = await api.put(`/owner/rooms/${id}`, { availabilityStatus });
+    return normaliseRoom(unwrap<Room>(response.data));
   },
 
   /* ==============================================================
      OWNER — DELETE LISTING
   ============================================================== */
 
-  async remove(
-    id: string,
-  ) {
-    const response = await api.post(`/owner/rooms/${id}/deactivate`);
+  async remove(id: string) {
+    try {
+      const response = await api.delete(`/owner/rooms/${id}`);
+      return unwrap<{
+        message?: string;
+        deleted?: boolean;
+      }>(response.data);
+    } catch {
+      const response = await api.post(`/owner/rooms/${id}/delete`);
+      return unwrap<{
+        message?: string;
+        deleted?: boolean;
+      }>(response.data);
+    }
+  },
 
-    return unwrap<{
-      message?: string;
-      deactivated?: boolean;
-    }>(response.data);
+  async delete(id: string) {
+    return this.remove(id);
   },
 
   async listOwner(page = 1, limit = 50): Promise<RoomPage> {

@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'owner';
+export type UserRole = 'user' | 'owner' | 'admin';
 
 export type TenantType =
   | 'student'

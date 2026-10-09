@@ -200,6 +200,8 @@ app.get('/api/owner/rooms', asyncHandler(roomController.listOwnerRooms));
 app.post('/api/owner/rooms', validate(createRoomSchema), asyncHandler(roomController.createRoom));
 app.put('/api/owner/rooms/:id', validate(updateRoomSchema), asyncHandler(roomController.updateRoom));
 app.post('/api/owner/rooms/:id/deactivate', asyncHandler(roomController.deactivateRoom));
+app.delete('/api/owner/rooms/:id', asyncHandler(roomController.deleteRoom));
+app.post('/api/owner/rooms/:id/delete', asyncHandler(roomController.deleteRoom));
 app.get('/api/owner/rooms/:id', asyncHandler(roomController.getRoom));
 
 // ============= ADMIN ROUTES (admin role only) =============
